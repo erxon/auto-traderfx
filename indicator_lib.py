@@ -29,3 +29,4 @@ def ema_cross_calculator(dataframe, ema_one, ema_two):
     dataframe.drop(columns=["position", "pre_position"], inplace=True)
 
     return dataframe
+

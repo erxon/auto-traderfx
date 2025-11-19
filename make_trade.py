@@ -28,6 +28,7 @@ def make_trade(balance, comment, risk_amount, symbol, take_profit, stop_loss, st
         stop_loss=stop_loss,
         stop_price=stop_price,
         take_profit=take_profit,
+        comment=comment,
         direct=False
     )
     

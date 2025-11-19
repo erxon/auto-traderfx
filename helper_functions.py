@@ -33,4 +33,13 @@ def calc_lot_size(balance, risk_amount, stop_loss, stop_price, symbol):
 
     return lot_size
 
+def convert_to_float_and_round(number, symbol=None):
+    decimal = 4
 
+    if symbol == "USDJPY":
+        decimal = 3
+    
+    converted_to_float = float(number)
+    rounded = round(converted_to_float, decimal)
+
+    return rounded

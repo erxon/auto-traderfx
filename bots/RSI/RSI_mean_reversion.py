@@ -2,6 +2,7 @@ import MetaTrader5 as mt5
 import pandas as pd
 import time
 import ta  # for technical indicators
+import mt5_lib
 
 # --- Configuration ---
 SYMBOL = "EURUSD"
@@ -12,13 +13,6 @@ LOT_SIZE = 0.1
 STOP_LOSS = 100  # in points
 TAKE_PROFIT = 200
 MAGIC_NUMBER = 12345
-
-# --- Initialize connection ---
-if not mt5.initialize():
-    print("MT5 initialization failed")
-    quit()
-
-print("Connected to MT5 successfully")
 
 # --- Helper functions ---
 def get_data(symbol, timeframe, n=200):

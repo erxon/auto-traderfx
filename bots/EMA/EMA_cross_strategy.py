@@ -19,10 +19,11 @@ def ema_cross_strategy(symbol, timeframe, ema_one, ema_two, balance, amount_to_r
     )
 
     trade_event = data.tail(1).copy()
+    print(trade_event)
 
     if trade_event["ema_cross"].values:
         comment_string = f"EMA_Cross_Strategy_{symbol}"
-        print(comment_string)
+
         make_trade_outcome = make_trade.make_trade(
             balance=balance,
             comment=comment_string,
@@ -57,8 +58,6 @@ def calc_indicators(data, ema_one, ema_two):
         ema_two=ema_two
     )
 
-    
-
     return dataframe
 
 def get_data(symbol, timeframe):
@@ -78,8 +77,10 @@ def det_trade(data, ema_one, ema_two):
     else:
         raise ValueError("EMA values are the same")
     
+    # Create a copy of the dataframe to avoid modifying the original data
     dataframe = data.copy()
 
+    # Initialize columns
     dataframe["take_profit"] = 0.00
     dataframe["stop_price"] = 0.00
     dataframe["stop_loss"] = 0.00
@@ -103,6 +104,5 @@ def det_trade(data, ema_one, ema_two):
                 dataframe.loc[i, 'stop_loss'] = stop_loss
                 dataframe.loc[i, 'stop_price'] = stop_price
                 dataframe.loc[i, 'take_profit'] = take_profit
-
 
     return dataframe

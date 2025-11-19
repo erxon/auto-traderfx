@@ -4,14 +4,13 @@ import indicator_lib
 import pandas as pd
 from bots.EMA import EMA_cross_strategy
 import time
+from bots.RSI import RSI_MACD_strategy
 
-
-def start_up():
+def start_up(symbol):
     start = mt5_lib.connect_to_mt5()
-    symbol = "EURUSD"
 
     if start:
-        init_symbol = mt5_lib.initialize_symbol("EURUSD")
+        init_symbol = mt5_lib.initialize_symbol(symbol)
         if init_symbol:
             print(f"{symbol} successfully initialized")
             return True
@@ -23,29 +22,28 @@ def start_up():
     
 
 if __name__ == "__main__":
-    symbols = ["EURUSD"]
-    timeframe = "M15"
+    symbols = ["USDJPY"]
+    timeframe = "M1"
     candles=1000
-    start_up()
+
     for symbol in symbols:
+        start_up(symbol)
         candlesticks = mt5_lib.get_candlesticks(
             symbol=symbol,
             timeframe=timeframe,
             number_of_candles=candles
         )
 
-        pd.set_option('display.max_columns', None)
-
-        while True:
-            data = EMA_cross_strategy.ema_cross_strategy(
-                symbol,
-                timeframe,
-                ema_one=50,
-                ema_two=200,
-                balance=100015,
-                amount_to_risk=0.01 )
+        trade_outcome = RSI_MACD_strategy.rsi_macd_strategy(
+                symbol=symbol,
+                timeframe=timeframe)
         
-            print(data)
+        while True:
+            trade_outcome = RSI_MACD_strategy.rsi_macd_strategy(
+                symbol=symbol,
+                timeframe=timeframe)
+            
+            print(trade_outcome)
             time.sleep(60)
 
 

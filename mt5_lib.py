@@ -84,19 +84,22 @@ def set_query_timeframe(timeframe):
     return timeframe_dict[timeframe]
 
 def place_order(order_type, symbol, volume, stop_loss, take_profit, comment, stop_price, direct=False):
-    volume = float(volume)
+    decimal = 4
 
+    if symbol == "USDJPY":
+        decimal = 3
+
+    volume = float(volume)
     volume = round(volume, 2)
 
     stop_loss = float(stop_loss)
-
-    stop_loss = round(stop_loss, 4)
+    stop_loss = round(stop_loss, decimal)
 
     take_profit = float(take_profit)
-    take_profit = round(take_profit, 4)
+    take_profit = round(take_profit, decimal)
 
     stop_price = float(stop_price)
-    stop_price = round(stop_price, 4)
+    stop_price = round(stop_price, decimal)
 
     request = {
         "symbol": symbol,
@@ -164,3 +167,17 @@ def place_order(order_type, symbol, volume, stop_loss, take_profit, comment, sto
             print(f"Invalid price for {symbol}. Price: {stop_price}")
 
 
+def get_past_data(symbol, timeframe, start, end):
+    mt5_timeframe = set_query_timeframe(timeframe)
+
+    rates = mt5.copy_rates_range(
+        symbol,
+        mt5_timeframe,
+        start,
+        end
+    )
+    print(rates)
+
+    dataframe = pd.DataFrame(rates)
+    print(dataframe)
+    return dataframe
