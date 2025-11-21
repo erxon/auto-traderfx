@@ -29,21 +29,26 @@ def rsi_macd_strategy(symbol, timeframe, backtest_data=None, risk_amount=0.01, b
 
     dataframe = get_signals(dataframe=dataframe, symbol=symbol)
 
-    dataframe = sl_tp_calc(
-        dataframe=dataframe,
+    dataframe = calc_atr(dataframe=dataframe)
+    
+
+
+
+    # Make the actual trade
+    trade_event = dataframe.tail(1).copy()
+
+
+    trade_event = trade_event_sltp_calc(
+        trade_event=trade_event,
         symbol=symbol
     )
 
-    dataframe = lot_size_calc(
-        dataframe=dataframe,
+    trade_event = trade_event_lot_size_calc(
+        trade_event=trade_event,
         balance=balance,
         risk_amount=risk_amount,
         symbol=symbol
     )
-
-    # Make the actual trade
-    trade_event = dataframe.tail(1).copy()
-    print(trade_event)
     
     if trade_event["buy_signal"].values or trade_event["sell_signal"].values:
         comment_string = f"RSI_MACD_Strategy_{symbol}"
@@ -96,7 +101,24 @@ def get_signals(dataframe, symbol):
 
     return dataframe
 
-def lot_size_calc(dataframe, balance, risk_amount, symbol):
+def calc_atr(dataframe):
+    """
+    This function calculates the Average True Range (ATR) for the given dataframe.
+
+    :param dataframe: The dataframe containing the high, low and close prices.
+    :type dataframe: pandas.DataFrame
+    :return: The dataframe with the ATR added.
+    :rtype: pandas.DataFrame
+    """
+
+    dataframe['atr'] = ta.volatility.average_true_range(
+        dataframe['high'],
+        dataframe['low'],
+        dataframe['close'], window=14)
+
+    return dataframe
+
+def trade_event_lot_size_calc(trade_event, balance, risk_amount, symbol):
     """
     This function calculates the lot size for each trade signal based on the given balance, risk amount, stop loss and entry price.
 
@@ -112,32 +134,30 @@ def lot_size_calc(dataframe, balance, risk_amount, symbol):
     :rtype: pandas.DataFrame
     """
 
-    for i in range(len(dataframe)):
-        if dataframe.loc[i, 'buy_signal'] or dataframe.loc[i, 'sell_signal']:
-            stop_loss = dataframe.loc[i, 'stop_loss']
-            entry_price = dataframe.loc[i, 'close']
+    if trade_event['buy_signal'].values or trade_event['sell_signal'].values:
+        stop_loss = trade_event['stop_loss']
+        entry_price = trade_event['close']
 
-            lot_size = helper.calc_lot_size(
-                balance=balance,
-                risk_amount=risk_amount,
-                stop_loss=stop_loss,
-                stop_price=entry_price,
-                symbol=symbol
-            )
+        lot_size = helper.calc_lot_size(
+            balance=balance,
+            risk_amount=risk_amount,
+            stop_loss=stop_loss,
+            stop_price=entry_price,
+            symbol=symbol
+        )
 
-            dataframe.loc[i, 'lot_size'] = lot_size
-        else:
-            dataframe.loc[i, 'lot_size'] = 0.00
+        trade_event['lot_size'] = lot_size
+    else:
+        trade_event['lot_size'] = 0.00
 
-    return dataframe
-def sl_tp_calc(dataframe, symbol, balance=100000, risk_amount=0.01):
+    return trade_event
 
-
+def trade_event_sltp_calc(trade_event, symbol, balance=100000, risk_amount=0.01):
     """
     This function calculates the stop loss and take profit for each trade signal based on the given balance, risk amount, symbol and dataframe.
 
-    :param dataframe: The dataframe containing the trade signals and other relevant columns.
-    :type dataframe: pandas.DataFrame
+    :param trade_event: The trade_event containing the trade signals and other relevant columns.
+    :type trade_event: pandas.DataFrame
     :param symbol: The symbol of the currency pair to be traded.
     :type symbol: str
     :param balance: The current balance of the trading account.
@@ -147,33 +167,23 @@ def sl_tp_calc(dataframe, symbol, balance=100000, risk_amount=0.01):
     :return: The dataframe with the stop loss and take profit added.
     :rtype: pandas.DataFrame
     """
+    entry_price = trade_event['close']
 
-    for i in range(len(dataframe)):
-        if i < 14:
-            dataframe.loc[i, 'atr'] = 0.00
-        else:
-            dataframe.loc[i, 'atr'] = ta.volatility.average_true_range(
-                dataframe['high'].iloc[i-14:i],
-                dataframe['low'].iloc[i-14:i],
-                dataframe['close'].iloc[i-14:i],
-                window=14
-            ).iloc[-1]
+    if trade_event['buy_signal'].values:
+        trade_event['stop_loss'] = helper.convert_to_float_and_round(entry_price - (trade_event['atr'] * 1.5), symbol)
+        trade_event['take_profit'] = helper.convert_to_float_and_round(entry_price + (trade_event['atr'] * 3), symbol)
+    
+    elif trade_event['sell_signal'].values:
+        trade_event['stop_loss'] = helper.convert_to_float_and_round(entry_price + (trade_event['atr'] * 1.5), symbol)
+        trade_event['take_profit'] = helper.convert_to_float_and_round(entry_price - (trade_event['atr'] * 3), symbol)
 
-            entry_price = dataframe.loc[i, 'close']
+    return trade_event
 
-            # Compute SL & TP
-            if dataframe.loc[i, 'buy_signal']:
-                dataframe.loc[i, 'stop_loss'] = helper.convert_to_float_and_round(entry_price - (dataframe.loc[i, 'atr'] * 1.5), symbol)
-                dataframe.loc[i, 'take_profit'] = helper.convert_to_float_and_round(entry_price + (dataframe.loc[i, 'atr'] * 3), symbol)
-            elif dataframe.loc[i, 'sell_signal']:
-                dataframe.loc[i, 'stop_loss'] = helper.convert_to_float_and_round(entry_price + (dataframe.loc[i, 'atr'] * 1.5), symbol)
-                dataframe.loc[i, 'take_profit'] = helper.convert_to_float_and_round(entry_price - (dataframe.loc[i, 'atr'] * 3), symbol)
-
-    return dataframe
 
 def get_data(symbol, timeframe):
     data = mt5_lib.get_candlesticks(symbol=symbol, timeframe=timeframe, number_of_candles=2000)
     return data
+
 
 def calc_indicators(dataframe):
     """  

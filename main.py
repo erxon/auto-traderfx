@@ -23,20 +23,11 @@ def start_up(symbol):
 
 if __name__ == "__main__":
     symbols = ["USDJPY"]
-    timeframe = "M1"
+    timeframe = "M30"
     candles=1000
 
     for symbol in symbols:
         start_up(symbol)
-        candlesticks = mt5_lib.get_candlesticks(
-            symbol=symbol,
-            timeframe=timeframe,
-            number_of_candles=candles
-        )
-
-        trade_outcome = RSI_MACD_strategy.rsi_macd_strategy(
-                symbol=symbol,
-                timeframe=timeframe)
         
         while True:
             trade_outcome = RSI_MACD_strategy.rsi_macd_strategy(
@@ -44,7 +35,7 @@ if __name__ == "__main__":
                 timeframe=timeframe)
             
             print(trade_outcome)
-            time.sleep(60)
+            time.sleep(60 * 30)     
 
 
 
