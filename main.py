@@ -1,6 +1,4 @@
-import MetaTrader5 
 import mt5_lib
-import indicator_lib
 import pandas as pd
 from bots.EMA import EMA_cross_strategy
 import time
@@ -18,8 +16,6 @@ def start_up(symbol):
             raise Exception(f"Failed to initialize")
         
     return False
-    
-    
 
 if __name__ == "__main__":
     symbols = ["USDJPY"]
@@ -35,7 +31,7 @@ if __name__ == "__main__":
                 timeframe=timeframe)
             
             print(trade_outcome)
-            time.sleep(60 * 30)     
+            time.sleep(60)     
 
 
 
