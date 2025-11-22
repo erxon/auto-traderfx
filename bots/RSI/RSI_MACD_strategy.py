@@ -2,7 +2,7 @@ import ta
 import mt5_lib
 import helper_functions as helper
 
-def rsi_macd_strategy(symbol, timeframe, backtest_data=None, risk_amount=0.01, balance=100000):
+def rsi_macd_strategy(symbol, timeframe, backtest_data=None, risk_amount=0.01, balance=100000, candlesticks=1000):
     
     """
     This function implements the RSI-MACD strategy. It takes in a symbol, timeframe, optional backtest data, risk amount and balance, and returns a boolean indicating whether a trade was made.
@@ -20,7 +20,7 @@ def rsi_macd_strategy(symbol, timeframe, backtest_data=None, risk_amount=0.01, b
         bool: whether a trade was made or not.
     """
     
-    dataframe = get_data(symbol=symbol, timeframe=timeframe)
+    dataframe = get_data(symbol=symbol, timeframe=timeframe, candlesticks=candlesticks)
     
     if (backtest_data is not None):
         dataframe = backtest_data
@@ -30,8 +30,6 @@ def rsi_macd_strategy(symbol, timeframe, backtest_data=None, risk_amount=0.01, b
     dataframe = get_signals(dataframe=dataframe, symbol=symbol)
 
     dataframe = calc_atr(dataframe=dataframe)
-    
-
 
 
     # Make the actual trade
@@ -180,8 +178,8 @@ def trade_event_sltp_calc(trade_event, symbol, balance=100000, risk_amount=0.01)
     return trade_event
 
 
-def get_data(symbol, timeframe):
-    data = mt5_lib.get_candlesticks(symbol=symbol, timeframe=timeframe, number_of_candles=2000)
+def get_data(symbol, timeframe, candlesticks=1000):
+    data = mt5_lib.get_candlesticks(symbol=symbol, timeframe=timeframe, number_of_candles=candlesticks)
     return data
 
 
