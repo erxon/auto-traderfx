@@ -1,19 +1,23 @@
 import sys, threading, time
+import os
 
-from PyQt5.QtWidgets import QHBoxLayout, QApplication, QMainWindow, QPushButton, QLabel, QVBoxLayout, QWidget, QComboBox
+from PyQt5.QtWidgets import QHBoxLayout, QApplication, QMainWindow, QPushButton, QLabel, QVBoxLayout, QWidget
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from widgets import log_widget, color
+from widgets import log_widget
 import mt5_lib
 from bots.RSI import RSI_MACD_strategy
 from widgets.timeframes_selection import TimeframeSelections
 from widgets.symbols_selection import SymbolsSelection
 from widgets.candlestick_selection import CandlestickSelection
-from widgets.plot import PlotWidget
-import plotly.graph_objects as go
-from datetime import datetime
-import json
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
 
+class MplCanvas(FigureCanvasQTAgg):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super(MplCanvas, self).__init__(fig)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -27,6 +31,10 @@ class MainWindow(QMainWindow):
         # Window Label
         self.label = QLabel("RSI + MACD Expert Advisor")
         self.label.setAlignment(Qt.AlignCenter)
+
+        # Canvas
+        self.trend_canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
 
         # Button Widget
         self.button = QPushButton("Run")
@@ -60,12 +68,10 @@ class MainWindow(QMainWindow):
         self.controls.addWidget(self.button)
         self.controls.addWidget(self.log_box)
 
-        # Plot widget
-        self.browser = QWebEngineView()
-        
         # Plot Layout
         self.plot_layout = QVBoxLayout()
-        self.plot_layout.addWidget(self.browser)
+        self.plot_layout.addWidget(self.trend_canvas)
+        self.plot_layout.addWidget(self.canvas)
         
         # Main Layout
         self.main_layout = QHBoxLayout()
@@ -78,7 +84,6 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
 
         self.running = False
-
 
     def on_select_symbol(self):
         self.selected_symbol = self.symbols.currentText()
@@ -96,7 +101,6 @@ class MainWindow(QMainWindow):
         else:  
             self.button.setText("Run")
             self.shutdown_bot()
-            
 
     def initialize_bot(self):
         log_widget.LogWidget.write(self.log_box, "MT5 Started")
@@ -111,6 +115,8 @@ class MainWindow(QMainWindow):
 
     def start_up(self):
         start = mt5_lib.connect_to_mt5()
+        dataframe = mt5_lib.get_candlesticks(self.selected_symbol, self.selected_timeframe, int(self.selected_candlesticks))
+            
         if start:
             init_symbol = mt5_lib.initialize_symbol(self.selected_symbol)
             if init_symbol:
@@ -134,20 +140,22 @@ class MainWindow(QMainWindow):
         log_widget.LogWidget.write(self.log_box, f"Bot started with symbol {symbol} and timeframe {timeframe} at {time.ctime()}")
 
         while self.running:
-            trade_outcome = RSI_MACD_strategy.rsi_macd_strategy(symbol=symbol, timeframe=timeframe, candlesticks=candlesticks)  
 
-            #Plot
-            dataframe = mt5_lib.get_candlesticks(symbol, timeframe, candlesticks)
-            
-            fig = go.Figure(
-                data=[go.Candlestick(x=dataframe["time"],
-                                    open=dataframe["open"],
-                                    high=dataframe["high"],
-                                    low=dataframe["low"],
-                                    close=dataframe["close"])])
-            # Display data
-            html_string = fig.to_html(include_plotlyjs='cdn')
-            # self.browser.setHtml(html_string)
+            trade_outcome = RSI_MACD_strategy.rsi_macd_strategy(symbol=symbol, timeframe=timeframe, candlesticks=candlesticks)  
+            dataframe = RSI_MACD_strategy.get_data(symbol=symbol, timeframe=timeframe, candlesticks=candlesticks)
+            dataframe = RSI_MACD_strategy.calc_indicators(dataframe=dataframe)
+
+            # RSI Plot
+            self.canvas.axes.clear()
+            self.trend_canvas.axes.clear()
+            self.trend_canvas.axes.plot(dataframe["time"], dataframe["close"], label="Close")
+            self.trend_canvas.axes.plot(dataframe["time"], dataframe["SMA_200"], label="SMA_200")
+            self.trend_canvas.axes.legend()
+            self.trend_canvas.draw()
+            self.canvas.axes.plot(dataframe["time"], dataframe["rsi"], label="RSI")
+            self.canvas.axes.plot(dataframe["time"], dataframe["macd"], label="MACD")
+            self.canvas.axes.legend()
+            self.canvas.draw()
 
             log_widget.LogWidget.write(self.log_box, f"Trade outcome: {trade_outcome}")
             log_widget.LogWidget.write(self.log_box, f"Processed at {time.ctime()}")

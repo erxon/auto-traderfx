@@ -193,5 +193,6 @@ def calc_indicators(dataframe):
     dataframe["macd"] = macd.macd()
     dataframe["signal"] = macd.macd_signal()
     dataframe["hist"] = macd.macd_diff()
+    dataframe["SMA_200"] = ta.trend.SMAIndicator(close=dataframe["close"], window=200, fillna=False).sma_indicator()
 
     return dataframe
