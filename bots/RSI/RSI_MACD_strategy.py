@@ -83,12 +83,27 @@ def get_signals(dataframe, symbol):
     pandas.DataFrame
         The dataframe with the additional columns 'buy_signal' and 'sell_signal'.
     """
+    """ 
+    Buy signal: 
+    The RSI value one row ago is less than 30,
+    The current RSI value is greater than 30,
+    The MACD value is greater than the signal value,
+    The histogram value is greater than 0
+    """
     dataframe["buy_signal"] = (
         (dataframe["rsi"].shift(1) < 30) &
         (dataframe["rsi"] > 30) &
         (dataframe["macd"] > dataframe["signal"]) &
         (dataframe["hist"] > 0)
     )
+
+    """
+    Sell signal:
+    The RSI value one row ago is greater than 70,
+    The current RSI value is less than 70,
+    The MACD value is less than the signal value,
+    The histogram value is less than 0
+    """
 
     dataframe["sell_signal"] = (
         (dataframe["rsi"].shift(1) > 70) &

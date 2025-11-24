@@ -176,8 +176,6 @@ def get_past_data(symbol, timeframe, start, end):
         start,
         end
     )
-    print(rates)
 
     dataframe = pd.DataFrame(rates)
-    print(dataframe)
     return dataframe
